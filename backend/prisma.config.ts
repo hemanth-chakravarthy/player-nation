@@ -3,14 +3,16 @@ import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 
+const dbUrl = process.env.DATABASE_URL || process.env.DATABASE_URL_LOCAL || '';
+
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   datasource: {
-    url: process.env.DATABASE_URL!,
+    url: dbUrl,
   },
   migrations: {
     path: 'prisma/migrations',
   },
   adapter: () =>
-    new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+    new PrismaPg({ connectionString: dbUrl }),
 });

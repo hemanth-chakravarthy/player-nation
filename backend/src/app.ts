@@ -15,7 +15,8 @@ const server = fastify({
   logger: true
 });
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const dbUrl = process.env.DATABASE_URL || process.env.DATABASE_URL_LOCAL || '';
+const adapter = new PrismaPg({ connectionString: dbUrl });
 const prisma = new PrismaClient({ adapter });
 const datasetService = DatasetService.getInstance();
 const eventProcessorService = new EventProcessorService();
