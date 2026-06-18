@@ -35,6 +35,28 @@ async function probeUrl(baseUrl: string): Promise<string> {
   return baseUrl;
 }
 
+function promiseAny<T>(promises: Promise<T>[]): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let rejectedCount = 0;
+    const errors: any[] = [];
+    if (promises.length === 0) {
+      reject(new Error('All promises were rejected'));
+      return;
+    }
+    promises.forEach((p, index) => {
+      Promise.resolve(p)
+        .then(resolve)
+        .catch((err) => {
+          errors[index] = err;
+          rejectedCount++;
+          if (rejectedCount === promises.length) {
+            reject(new Error('All promises were rejected'));
+          }
+        });
+    });
+  });
+}
+
 async function discoverApiUrl(force = false): Promise<string> {
   if (isDiscovered && !force) {
     return resolvedApiUrl;
@@ -45,7 +67,7 @@ async function discoverApiUrl(force = false): Promise<string> {
 
   discoveryPromise = (async () => {
     try {
-      const url = await Promise.any(buildCandidates().map(probeUrl));
+      const url = await promiseAny(buildCandidates().map(probeUrl));
       console.log(`[API] ✅ Connected to backend at ${url}`);
       resolvedApiUrl = url;
       isDiscovered = true;
