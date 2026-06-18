@@ -10,6 +10,7 @@ import {
   StatusBar,
   Platform,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SidebarDrawer from './SidebarDrawer';
@@ -72,8 +73,96 @@ const TEAM_BADGE_URLS: Record<string, string> = {
   'Panama':         'https://upload.wikimedia.org/wikipedia/en/thumb/3/37/FEPAFUT_Logo.svg/800px-FEPAFUT_Logo.svg.png',
 };
 
-function TeamFlag({ teamName, size = 32 }: { teamName: string; size?: number }) {
-  const uri = TEAM_BADGE_URLS[teamName];
+// ─── Themed In-App Alert ────────────────────────────────────────────────────────
+type AlertBtn = { label: string; onPress?: () => void; destructive?: boolean; ghost?: boolean };
+function AppAlert({
+  visible, icon, title, message, buttons, onDismiss,
+}: {
+  visible: boolean; icon?: string; title: string; message: string;
+  buttons: AlertBtn[]; onDismiss?: () => void;
+}) {
+  if (!visible) return null;
+  return (
+    <View style={ald.backdrop}>
+      <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onDismiss} activeOpacity={1} />
+      <View style={ald.box}>
+        {icon && (
+          <View style={ald.iconWrap}>
+            <Text style={ald.iconText}>{icon}</Text>
+          </View>
+        )}
+        <Text style={ald.title}>{title}</Text>
+        <Text style={ald.message}>{message}</Text>
+        <View style={ald.btnRow}>
+          {buttons.map((b, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[ald.btn, b.destructive && ald.btnDestructive, b.ghost && ald.btnGhost]}
+              onPress={() => { b.onPress?.(); onDismiss?.(); }}
+              activeOpacity={0.82}
+            >
+              <Text style={[ald.btnText, b.destructive && ald.btnTextDestructive, b.ghost && ald.btnTextGhost]}>
+                {b.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+const ald = StyleSheet.create({
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    zIndex: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  box: {
+    width: '100%',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#2D2D2D',
+    padding: 24,
+    alignItems: 'center',
+  },
+  iconWrap: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: '#0E0E0E',
+    borderWidth: 1, borderColor: '#2D2D2D',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 16,
+  },
+  iconText: { fontSize: 26 },
+  title: {
+    fontFamily: 'Sora-ExtraBold',
+    fontSize: 18, fontWeight: '800',
+    color: '#FFFFFF', textAlign: 'center', marginBottom: 8,
+  },
+  message: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14, color: '#C8C6C5',
+    textAlign: 'center', lineHeight: 21, marginBottom: 24,
+  },
+  btnRow: { flexDirection: 'row', gap: 10, width: '100%' },
+  btn: {
+    flex: 1, backgroundColor: '#D7FF00',
+    borderRadius: 6, paddingVertical: 13,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  btnDestructive: { backgroundColor: 'rgba(255,75,75,0.12)', borderWidth: 1, borderColor: '#FF4B4B' },
+  btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#2D2D2D' },
+  btnText: { fontFamily: 'JetBrainsMono-Bold', fontSize: 12, fontWeight: '800', color: '#0D0D0D', letterSpacing: 0.5 },
+  btnTextDestructive: { color: '#FF4B4B' },
+  btnTextGhost: { color: '#C8C6C5' },
+});
+
+function TeamFlag({ teamName, size = 32 }: { teamName?: string; size?: number }) {
+  const safeName = teamName ?? '';
+  const uri = safeName ? TEAM_BADGE_URLS[safeName] : undefined;
   const imgW = Math.round(size * 1.45);
   const imgH = size;
   if (uri) {
@@ -91,7 +180,7 @@ function TeamFlag({ teamName, size = 32 }: { teamName: string; size?: number }) 
       alignItems: 'center', justifyContent: 'center',
     }}>
       <Text style={{ color: '#E5E2E1', fontWeight: '900', fontSize: 10, fontFamily: MONO }}>
-        {teamName.slice(0, 3).toUpperCase()}
+        {safeName ? safeName.slice(0, 3).toUpperCase() : '?'}
       </Text>
     </View>
   );
@@ -101,6 +190,13 @@ export default function SavedReportsScreen({ navigation }: any) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [search, setSearch] = useState('');
+  const [alertState, setAlertState] = useState<{ visible: boolean; icon?: string; title: string; message: string; buttons: AlertBtn[] }>({
+    visible: false, title: '', message: '', buttons: [],
+  });
+
+  const showAlert = (icon: string, title: string, message: string, buttons: AlertBtn[]) =>
+    setAlertState({ visible: true, icon, title, message, buttons });
+  const hideAlert = () => setAlertState(a => ({ ...a, visible: false }));
 
   const { savedReports, fetchSavedReports, deleteSavedReport } = useAppStore();
 
@@ -116,9 +212,9 @@ export default function SavedReportsScreen({ navigation }: any) {
     const q = search.toLowerCase().trim();
     if (!q) return true;
     return (
-      r.homeTeam.toLowerCase().includes(q) ||
-      r.awayTeam.toLowerCase().includes(q) ||
-      r.competition.toLowerCase().includes(q)
+      (r.homeTeam ?? '').toLowerCase().includes(q) ||
+      (r.awayTeam ?? '').toLowerCase().includes(q) ||
+      (r.competition ?? '').toLowerCase().includes(q)
     );
   });
 
@@ -151,12 +247,26 @@ export default function SavedReportsScreen({ navigation }: any) {
     navigation.navigate('Report');
   };
 
-  const handleDelete = async (matchId: number) => {
-    try {
-      await deleteSavedReport(matchId);
-    } catch (error) {
-      console.error('Delete error:', error);
-    }
+  const handleDelete = (matchId: number, homeTeam: string, awayTeam: string) => {
+    showAlert(
+      undefined,
+      'Delete Report',
+      `Remove the saved report for ${homeTeam} vs ${awayTeam}? This cannot be undone.`,
+      [
+        {
+          label: 'DELETE',
+          destructive: true,
+          onPress: async () => {
+            try {
+              await deleteSavedReport(matchId);
+            } catch (error) {
+              console.error('Delete error:', error);
+            }
+          },
+        },
+        { label: 'CANCEL', ghost: true },
+      ]
+    );
   };
 
   return (
@@ -216,17 +326,18 @@ export default function SavedReportsScreen({ navigation }: any) {
           ) : (
             filtered.map((reportItem: any) => {
               const formattedDate = () => {
-                const parts = reportItem.date.split('-');
+                const raw = reportItem.date ?? '';
+                const parts = raw.split('-');
                 const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
                 return parts.length === 3
                   ? `${parts[2]} ${MONTHS[parseInt(parts[1], 10) - 1]} ${parts[0]}`
-                  : reportItem.date;
+                  : raw || 'UNKNOWN DATE';
               };
 
               return (
                 <View key={reportItem.matchId} style={s.card}>
                   <View style={s.cardHeader}>
-                    <Text style={s.cardMetaLime}>{reportItem.competition.toUpperCase()}</Text>
+                    <Text style={s.cardMetaLime}>{(reportItem.competition ?? 'FIFA WORLD CUP').toUpperCase()}</Text>
                     <Text style={s.cardMetaSec}>{formattedDate().toUpperCase()}</Text>
                   </View>
 
@@ -235,7 +346,7 @@ export default function SavedReportsScreen({ navigation }: any) {
                       <View style={s.flagBox}>
                         <TeamFlag teamName={reportItem.homeTeam} size={36} />
                       </View>
-                      <Text style={s.teamNameBelow}>{reportItem.homeTeam.toUpperCase()}</Text>
+                      <Text style={s.teamNameBelow}>{(reportItem.homeTeam ?? '').toUpperCase()}</Text>
                     </View>
 
                     {(() => {
@@ -261,7 +372,7 @@ export default function SavedReportsScreen({ navigation }: any) {
                       <View style={s.flagBox}>
                         <TeamFlag teamName={reportItem.awayTeam} size={36} />
                       </View>
-                      <Text style={s.teamNameBelow}>{reportItem.awayTeam.toUpperCase()}</Text>
+                      <Text style={s.teamNameBelow}>{(reportItem.awayTeam ?? '').toUpperCase()}</Text>
                     </View>
                   </View>
 
@@ -278,7 +389,7 @@ export default function SavedReportsScreen({ navigation }: any) {
                     <TouchableOpacity
                       style={s.deleteBtn}
                       activeOpacity={0.8}
-                      onPress={() => handleDelete(reportItem.matchId)}
+                      onPress={() => handleDelete(reportItem.matchId, reportItem.homeTeam ?? '', reportItem.awayTeam ?? '')}
                     >
                       <TrashIcon size={16} color="#FF4B4B" />
                     </TouchableOpacity>
@@ -313,6 +424,16 @@ export default function SavedReportsScreen({ navigation }: any) {
         onClose={() => setIsDrawerOpen(false)}
         navigation={navigation}
         activeScreen="SavedReports"
+      />
+
+      {/* In-App Alert */}
+      <AppAlert
+        visible={alertState.visible}
+        icon={alertState.icon}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onDismiss={hideAlert}
       />
     </SafeAreaView>
   );

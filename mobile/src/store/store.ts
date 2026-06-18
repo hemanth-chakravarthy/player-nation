@@ -11,31 +11,51 @@ function buildCandidates(): string[] {
     process.env.EXPO_PUBLIC_API_URL,  // .env value — highest priority
     `http://10.0.2.2:${PORT}`,        // Android Emulator alias
     `http://localhost:${PORT}`,       // web / iOS simulator
+    `http://192.168.1.8:${PORT}`,      // Current Ethernet IP
+    `http://192.168.137.1:${PORT}`,   // Current Windows Hotspot IP
   ].filter(Boolean) as string[];
 
-  // Scan the entire 192.168.1.x subnet (covers most home/office routers)
-  const subnet = Array.from({ length: 30 }, (_, i) => `http://192.168.1.${i + 1}:${PORT}`);
+  // Scan the most common subnets
+  const subnet1 = Array.from({ length: 30 }, (_, i) => `http://192.168.1.${i + 1}:${PORT}`);
+  const subnet0 = Array.from({ length: 30 }, (_, i) => `http://192.168.0.${i + 1}:${PORT}`);
+  const subnet137 = Array.from({ length: 10 }, (_, i) => `http://192.168.137.${i + 1}:${PORT}`);
 
-  return [...fixed, ...subnet];
+  return [...fixed, ...subnet1, ...subnet0, ...subnet137];
 }
 
 let resolvedApiUrl: string = process.env.EXPO_PUBLIC_API_URL || `http://10.0.2.2:${PORT}`;
+let isDiscovered = false;
+let discoveryPromise: Promise<string> | null = null;
 
 async function probeUrl(baseUrl: string): Promise<string> {
-  await axios.get(`${baseUrl}/health`, { timeout: 2500 });
+  await axios.get(`${baseUrl}/health`, { timeout: 1500 });
   return baseUrl;
 }
 
-async function discoverApiUrl(): Promise<string> {
-  try {
-    const url = await Promise.any(buildCandidates().map(probeUrl));
-    console.log(`[API] ✅ Connected to backend at ${url}`);
-    resolvedApiUrl = url;
-    return url;
-  } catch {
-    console.warn(`[API] ⚠️ Backend not found on any address. Last known: ${resolvedApiUrl}`);
+async function discoverApiUrl(force = false): Promise<string> {
+  if (isDiscovered && !force) {
     return resolvedApiUrl;
   }
+  if (discoveryPromise) {
+    return discoveryPromise;
+  }
+
+  discoveryPromise = (async () => {
+    try {
+      const url = await Promise.any(buildCandidates().map(probeUrl));
+      console.log(`[API] ✅ Connected to backend at ${url}`);
+      resolvedApiUrl = url;
+      isDiscovered = true;
+      return url;
+    } catch {
+      console.warn(`[API] ⚠️ Backend not found on any address. Last known: ${resolvedApiUrl}`);
+      return resolvedApiUrl;
+    } finally {
+      discoveryPromise = null;
+    }
+  })();
+
+  return discoveryPromise;
 }
 
 // Kick off discovery immediately (non-blocking)
@@ -106,7 +126,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   fetchMatches: async () => {
     set({ isLoading: true, error: null, loadingMessage: 'Fetching available matches...' });
     // Re-run discovery in case IP changed since app start
-    await discoverApiUrl();
+    await discoverApiUrl(true);
     try {
       const response = await axios.get<{ matches: Match[] }>(`${resolvedApiUrl}/matches`, { timeout: 8000 });
       set({

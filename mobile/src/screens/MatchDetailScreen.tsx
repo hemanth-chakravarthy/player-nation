@@ -24,6 +24,7 @@ import {
   AnalyticsIcon,
   BookmarkIcon,
   SettingsIcon,
+  ChevronLeftIcon,
 } from './Icons';
 
 const { width: W } = Dimensions.get('window');
@@ -220,9 +221,14 @@ export default function MatchDetailScreen({ navigation }: any) {
 
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity style={s.headerBtn} onPress={() => setIsDrawerOpen(true)} activeOpacity={0.7}>
-          <MenuIcon size={22} color={C.neonLime} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <TouchableOpacity style={s.headerBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+            <ChevronLeftIcon size={22} color={C.neonLime} />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.headerBtn} onPress={() => setIsDrawerOpen(true)} activeOpacity={0.7}>
+            <MenuIcon size={22} color={C.neonLime} />
+          </TouchableOpacity>
+        </View>
 
         <Image
           source={require('../../assets/PlayerNationCrop1.png')}

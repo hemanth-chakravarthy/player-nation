@@ -254,7 +254,7 @@ function MatchCard({
         </View>
 
         <TouchableOpacity style={mc.cta} onPress={onButtonPress} activeOpacity={0.8}>
-          <Text style={mc.ctaText}>GENERATE TACTICAL REPORT  →</Text>
+          <Text style={mc.ctaText}>MATCH DETAILS  →</Text>
         </TouchableOpacity>
       </TouchableOpacity>
     );

@@ -2,6 +2,7 @@ import fastify from 'fastify';
 import cors from '@fastify/cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import DatasetService from './services/dataset.service.ts';
 import EventProcessorService from './services/event-processor.service.ts';
 import LlmService from './services/llm.service.ts';
@@ -14,7 +15,8 @@ const server = fastify({
   logger: true
 });
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+const prisma = new PrismaClient({ adapter });
 const datasetService = DatasetService.getInstance();
 const eventProcessorService = new EventProcessorService();
 const llmService = new LlmService();
@@ -385,6 +387,9 @@ server.get('/reports/saved', async (request, reply) => {
         homeTeam: m.homeTeam,
         awayTeam: m.awayTeam,
         score: `${m.homeScore}-${m.awayScore}`,
+        competition: m.competition,
+        date: m.date,
+        venue: m.venue,
         report: m.tacticalReport ? {
           summary: m.tacticalReport.summary,
           keyMoments: m.tacticalReport.keyMoments,

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -436,12 +436,113 @@ const ls = StyleSheet.create({
   },
 });
 
+// ─── Themed In-App Alert ─────────────────────────────────────────────────────────
+type AlertBtn = { label: string; onPress?: () => void; destructive?: boolean; ghost?: boolean };
+function AppAlert({
+  visible, icon, title, message, buttons, onDismiss,
+}: {
+  visible: boolean; icon?: string; title: string; message: string;
+  buttons: AlertBtn[]; onDismiss?: () => void;
+}) {
+  if (!visible) return null;
+  return (
+    <View style={al.backdrop}>
+      <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onDismiss} activeOpacity={1} />
+      <View style={al.box}>
+        {icon && (
+          <View style={al.iconWrap}>
+            <Text style={al.iconText}>{icon}</Text>
+          </View>
+        )}
+        <Text style={al.title}>{title}</Text>
+        <Text style={al.message}>{message}</Text>
+        <View style={al.btnRow}>
+          {buttons.map((b, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[al.btn, b.destructive && al.btnDestructive, b.ghost && al.btnGhost]}
+              onPress={() => { b.onPress?.(); onDismiss?.(); }}
+              activeOpacity={0.82}
+            >
+              <Text style={[al.btnText, b.destructive && al.btnTextDestructive, b.ghost && al.btnTextGhost]}>
+                {b.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+const al = StyleSheet.create({
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    zIndex: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  box: {
+    width: '100%',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#2D2D2D',
+    padding: 24,
+    alignItems: 'center',
+  },
+  iconWrap: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: '#0E0E0E',
+    borderWidth: 1, borderColor: '#2D2D2D',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 16,
+  },
+  iconText: { fontSize: 26 },
+  title: {
+    fontFamily: 'Sora-ExtraBold',
+    fontSize: 18, fontWeight: '800',
+    color: '#FFFFFF', textAlign: 'center', marginBottom: 8,
+  },
+  message: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14, color: '#C8C6C5',
+    textAlign: 'center', lineHeight: 21, marginBottom: 24,
+  },
+  btnRow: { flexDirection: 'row', gap: 10, width: '100%' },
+  btn: {
+    flex: 1, backgroundColor: '#D7FF00',
+    borderRadius: 6, paddingVertical: 13,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  btnDestructive: { backgroundColor: 'rgba(255,75,75,0.12)', borderWidth: 1, borderColor: '#FF4B4B' },
+  btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#2D2D2D' },
+  btnText: { fontFamily: 'JetBrainsMono-Bold', fontSize: 12, fontWeight: '800', color: '#0D0D0D', letterSpacing: 0.5 },
+  btnTextDestructive: { color: '#FF4B4B' },
+  btnTextGhost: { color: '#C8C6C5' },
+});
+
 // ─── Main Report Screen ──────────────────────────────────────────────────────────
 export default function ReportScreen({ navigation }: any) {
-  const { report, isLoading, loadingMessage, error, selectedMatch, generateReport, clearReport, saveReport } =
+  const { report, isLoading, loadingMessage, error, selectedMatch, generateReport, clearReport, saveReport, savedReports, fetchSavedReports } =
     useAppStore();
 
-  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [alert, setAlert] = useState<{ visible: boolean; icon?: string; title: string; message: string; buttons: AlertBtn[] }>({
+    visible: false, title: '', message: '', buttons: [],
+  });
+
+  const showAlert = (icon: string, title: string, message: string, buttons: AlertBtn[]) =>
+    setAlert({ visible: true, icon, title, message, buttons });
+  const hideAlert = () => setAlert(a => ({ ...a, visible: false }));
+
+  // Check if current match report is already saved
+  const isAlreadySaved = !!report && savedReports.some(
+    (s: any) => s.matchId === report.matchId
+  );
+
+  useEffect(() => { fetchSavedReports(); }, []);
 
   const handleRetry  = () => { if (selectedMatch) generateReport(selectedMatch.matchId); };
   const handleGoBack = () => { clearReport(); navigation.goBack(); };
@@ -449,25 +550,25 @@ export default function ReportScreen({ navigation }: any) {
   const handleShare = async () => {
     if (!report) return;
     try {
-      const shareMessage = `⚽ PLAYERNATION AI MATCH REPORT ⚽\n\n` +
+      const shareMessage = `PLAYERNATION AI MATCH REPORT\n\n` +
         `MATCH: ${report.homeTeam} vs ${report.awayTeam}\n` +
         `RESULT: ${report.score}\n` +
         `VENUE: ${selectedMatch?.venue ?? 'Unknown Stadium'}\n` +
         `DATE: ${selectedMatch?.date ?? 'Unknown Date'}\n\n` +
         `----------------------------------------\n\n` +
-        `💡 EXECUTIVE SUMMARY:\n` +
+        `EXECUTIVE SUMMARY:\n` +
         `${report.report.summary}\n\n` +
         `----------------------------------------\n\n` +
-        `⚡ TURNING POINTS:\n` +
+        `TURNING POINTS:\n` +
         `${report.report.keyMoments.map(m => `• ${m}`).join('\n')}\n\n` +
         `----------------------------------------\n\n` +
-        `⭐ STANDOUT PERFORMERS:\n` +
+        `STANDOUT PERFORMERS:\n` +
         `${report.report.standoutPlayers.map(p => `• ${p}`).join('\n')}\n\n` +
         `----------------------------------------\n\n` +
-        `📈 TEAM ANALYSIS:\n` +
+        `TEAM ANALYSIS:\n` +
         `${report.report.teamAnalysis}\n\n` +
         `----------------------------------------\n\n` +
-        `🧠 TACTICAL INSIGHTS:\n` +
+        `TACTICAL INSIGHTS:\n` +
         `${report.report.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}\n\n` +
         `----------------------------------------\n\n` +
         `Powered by PlayerNation AI`;
@@ -482,6 +583,13 @@ export default function ReportScreen({ navigation }: any) {
 
   const handleSave = async () => {
     if (!report) return;
+    if (isAlreadySaved) {
+      showAlert(undefined, 'Already Saved', `The report for ${report.homeTeam} vs ${report.awayTeam} is already in your saved reports.`, [
+        { label: 'VIEW SAVED', onPress: () => navigation.navigate('SavedReports') },
+        { label: 'OK', ghost: true },
+      ]);
+      return;
+    }
     try {
       const fullReportData = {
         matchId: selectedMatch?.matchId ?? Date.now(),
@@ -494,10 +602,17 @@ export default function ReportScreen({ navigation }: any) {
         report: report.report
       };
       await saveReport(fullReportData);
-      alert('Report Saved Successfully!');
+      await fetchSavedReports();
+      showAlert(undefined, 'Report Saved', `${report.homeTeam} vs ${report.awayTeam} has been added to your saved reports.`, [
+        { label: 'VIEW SAVED', onPress: () => navigation.navigate('SavedReports') },
+        { label: 'DONE', ghost: true },
+      ]);
     } catch (error) {
       console.error('Failed to save report:', error);
-      alert('Failed to save report.');
+      showAlert(undefined, 'Save Failed', 'Could not save the report. Please check your connection and try again.', [
+        { label: 'RETRY', onPress: handleSave },
+        { label: 'CANCEL', ghost: true },
+      ]);
     }
   };
 
@@ -570,9 +685,14 @@ export default function ReportScreen({ navigation }: any) {
 
       {/* ── Top Bar ── */}
       <View style={tb.bar}>
-        <TouchableOpacity onPress={() => setIsDrawerOpen(true)} style={tb.btn} activeOpacity={0.7}>
-          <MenuIcon size={22} color={C.neonLime} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <TouchableOpacity onPress={handleGoBack} style={tb.btn} activeOpacity={0.7}>
+            <ChevronLeftIcon size={22} color={C.neonLime} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setIsDrawerOpen(true)} style={tb.btn} activeOpacity={0.7}>
+            <MenuIcon size={22} color={C.neonLime} />
+          </TouchableOpacity>
+        </View>
         <Image
           source={require('../../assets/PlayerNationCrop1.png')}
           style={tb.logoImage}
@@ -757,9 +877,15 @@ export default function ReportScreen({ navigation }: any) {
             <ShareIcon size={16} color="#000000" />
             <Text style={act.primaryText}>SHARE REPORT</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={act.secondary} onPress={handleSave} activeOpacity={0.88}>
-            <BookmarkIcon size={16} color={C.neonLime} />
-            <Text style={act.secondaryText}>SAVE REPORT</Text>
+          <TouchableOpacity
+            style={isAlreadySaved ? act.savedBtn : act.secondary}
+            onPress={handleSave}
+            activeOpacity={0.88}
+          >
+            <BookmarkIcon size={16} color={isAlreadySaved ? '#00E676' : C.neonLime} />
+            <Text style={isAlreadySaved ? act.savedBtnText : act.secondaryText}>
+              {isAlreadySaved ? 'SAVED ✓' : 'SAVE REPORT'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -775,6 +901,16 @@ export default function ReportScreen({ navigation }: any) {
         onClose={() => setIsDrawerOpen(false)}
         navigation={navigation}
         activeScreen="MatchList"
+      />
+
+      {/* In-App Alert */}
+      <AppAlert
+        visible={alert.visible}
+        icon={alert.icon}
+        title={alert.title}
+        message={alert.message}
+        buttons={alert.buttons}
+        onDismiss={hideAlert}
       />
     </SafeAreaView>
   );
@@ -1123,6 +1259,25 @@ const act = StyleSheet.create({
     fontSize:     11,
     fontWeight:   '700',
     color:        C.neonLime,
+    letterSpacing: 1,
+  },
+  savedBtn: {
+    flexDirection: 'row',
+    alignItems:    'center',
+    justifyContent: 'center',
+    gap:            8,
+    borderWidth:    1,
+    borderColor:   '#00E676',
+    borderRadius:  4,
+    paddingVertical: 14,
+    width:            '100%',
+    backgroundColor: 'rgba(0,230,118,0.07)',
+  },
+  savedBtnText: {
+    fontFamily:   MONO_BOLD,
+    fontSize:     11,
+    fontWeight:   '700',
+    color:        '#00E676',
     letterSpacing: 1,
   },
 });
