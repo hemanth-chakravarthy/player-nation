@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 1. Matches Table
+model Match {
+  id             Int             @id // matchId
+  date           String          // Format: "YYYY-MM-DD"
+  competition    String
+  venue          String
+  homeTeam       String
+  awayTeam       String
+  homeScore      Int
+  awayScore      Int
+  status         String          // e.g., "completed", "scheduled"
+  
+  // Relations
+  tacticalReport TacticalReport?
+  savedByUsers   SavedReport[]
+}
+
+// 2. Cached Tactical Reports Table (Prevents redundant LLM generation)
+model TacticalReport {
+  id              Int      @id @default(autoincrement())
+  matchId         Int      @unique
+  match           Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  summary         String   @db.Text
+  keyMoments      String[] // Array of strings (supported natively by Postgres)
+  standoutPlayers String[] // Array of strings
+  teamAnalysis    String   @db.Text
+  recommendations String[] // Array of strings
+  createdAt       DateTime @default(now())
+}
+
+// 3. User Saved/Bookmarked Reports
+model SavedReport {
+  id        Int      @id @default(autoincrement())
+  userId    String   // Identifier (e.g., Auth0 or local sub ID)
+  matchId   Int
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  savedAt   DateTime @default(now())
+
+  @@unique([userId, matchId])
+}

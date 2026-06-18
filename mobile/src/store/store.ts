@@ -1,0 +1,229 @@
+import { create } from 'zustand';
+import axios from 'axios';
+
+// ─── Smart API URL discovery ────────────────────────────────────────────────────
+// Probes a range of LAN IPs + known aliases simultaneously.
+// Whichever responds first wins — self-heals when DHCP reassigns the PC's IP.
+const PORT = 3000;
+
+function buildCandidates(): string[] {
+  const fixed = [
+    process.env.EXPO_PUBLIC_API_URL,  // .env value — highest priority
+    `http://10.0.2.2:${PORT}`,        // Android Emulator alias
+    `http://localhost:${PORT}`,       // web / iOS simulator
+  ].filter(Boolean) as string[];
+
+  // Scan the entire 192.168.1.x subnet (covers most home/office routers)
+  const subnet = Array.from({ length: 30 }, (_, i) => `http://192.168.1.${i + 1}:${PORT}`);
+
+  return [...fixed, ...subnet];
+}
+
+let resolvedApiUrl: string = process.env.EXPO_PUBLIC_API_URL || `http://10.0.2.2:${PORT}`;
+
+async function probeUrl(baseUrl: string): Promise<string> {
+  await axios.get(`${baseUrl}/health`, { timeout: 2500 });
+  return baseUrl;
+}
+
+async function discoverApiUrl(): Promise<string> {
+  try {
+    const url = await Promise.any(buildCandidates().map(probeUrl));
+    console.log(`[API] ✅ Connected to backend at ${url}`);
+    resolvedApiUrl = url;
+    return url;
+  } catch {
+    console.warn(`[API] ⚠️ Backend not found on any address. Last known: ${resolvedApiUrl}`);
+    return resolvedApiUrl;
+  }
+}
+
+// Kick off discovery immediately (non-blocking)
+discoverApiUrl();
+
+export interface Match {
+  matchId: number;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  date: string;
+  competition: string;
+  venue: string;
+}
+
+export interface Report {
+  summary: string;
+  keyMoments: string[];
+  standoutPlayers: string[];
+  teamAnalysis: string;
+  recommendations: string[];
+}
+
+export interface MatchReportResponse {
+  reportId: string;
+  matchId: number;
+  homeTeam: string;
+  awayTeam: string;
+  score: string;
+  report: Report;
+}
+
+interface AppState {
+  matches: Match[];
+  filteredMatches: Match[];
+  selectedMatch: Match | null;
+  report: MatchReportResponse | null;
+  isLoading: boolean;
+  loadingMessage: string;
+  error: string | null;
+  searchQuery: string;
+  savedReports: any[];
+
+  // Actions
+  fetchMatches: () => Promise<void>;
+  setSelectedMatch: (match: Match | null) => void;
+  setSearchQuery: (query: string) => void;
+  generateReport: (matchId: number) => Promise<void>;
+  clearReport: () => void;
+  fetchMatchStats: (matchId: number) => Promise<any>;
+  fetchSavedReports: () => Promise<void>;
+  saveReport: (report: any) => Promise<void>;
+  deleteSavedReport: (matchId: number) => Promise<void>;
+}
+
+export const useAppStore = create<AppState>((set, get) => ({
+  matches: [],
+  filteredMatches: [],
+  selectedMatch: null,
+  report: null,
+  isLoading: false,
+  loadingMessage: '',
+  error: null,
+  searchQuery: '',
+  savedReports: [],
+
+  fetchMatches: async () => {
+    set({ isLoading: true, error: null, loadingMessage: 'Fetching available matches...' });
+    // Re-run discovery in case IP changed since app start
+    await discoverApiUrl();
+    try {
+      const response = await axios.get<{ matches: Match[] }>(`${resolvedApiUrl}/matches`, { timeout: 8000 });
+      set({
+        matches: response.data.matches,
+        filteredMatches: response.data.matches,
+        isLoading: false,
+      });
+    } catch (err: any) {
+      console.error('Failed to fetch matches:', err.message);
+      set({
+        error: `Cannot reach backend at ${resolvedApiUrl}.\nMake sure:\n• Backend is running (pnpm dev)\n• Your phone and PC are on the same Wi-Fi\n• IP in .env matches your PC IP`,
+        isLoading: false,
+      });
+    }
+  },
+
+  setSelectedMatch: (match) => {
+    set({ selectedMatch: match });
+  },
+
+  setSearchQuery: (query) => {
+    const { matches } = get();
+    const cleanQuery = query.toLowerCase().trim();
+    if (!cleanQuery) {
+      set({ searchQuery: query, filteredMatches: matches });
+      return;
+    }
+    const filtered = matches.filter(
+      (m) =>
+        m.homeTeam.toLowerCase().includes(cleanQuery) ||
+        m.awayTeam.toLowerCase().includes(cleanQuery) ||
+        m.competition.toLowerCase().includes(cleanQuery)
+    );
+    set({ searchQuery: query, filteredMatches: filtered });
+  },
+
+  generateReport: async (matchId) => {
+    set({ isLoading: true, error: null, report: null });
+
+    const messages = [
+      'Extracting match event streams...',
+      'Aggregating possession and pass metrics...',
+      'Computing player ratings...',
+      'Building chronological timeline...',
+      'Prompting AI for narrative report...',
+      'Polishing insights and final analysis...',
+    ];
+
+    let currentMsgIndex = 0;
+    set({ loadingMessage: messages[currentMsgIndex] });
+
+    const intervalId = setInterval(() => {
+      if (currentMsgIndex < messages.length - 1) {
+        currentMsgIndex++;
+        set({ loadingMessage: messages[currentMsgIndex] });
+      }
+    }, 1800);
+
+    try {
+      // Re-probe to make sure we have a live backend URL
+      await discoverApiUrl();
+      const response = await axios.post<MatchReportResponse>(
+        `${resolvedApiUrl}/reports/generate`,
+        { matchId },
+        { timeout: 45000 }, // LLM can take time
+      );
+      clearInterval(intervalId);
+      set({ report: response.data, isLoading: false });
+    } catch (err: any) {
+      clearInterval(intervalId);
+      console.error('Failed to generate report:', err.message);
+      set({
+        error: err.response?.data?.error?.message || `Network error — backend at ${resolvedApiUrl} unreachable.`,
+        isLoading: false,
+      });
+    }
+  },
+
+  clearReport: () => {
+    set({ report: null, error: null });
+  },
+
+  fetchMatchStats: async (matchId) => {
+    await discoverApiUrl();
+    const response = await axios.get(`${resolvedApiUrl}/matches/${matchId}/stats`);
+    return response.data;
+  },
+
+  fetchSavedReports: async () => {
+    await discoverApiUrl();
+    try {
+      const response = await axios.get<{ reports: any[] }>(`${resolvedApiUrl}/reports/saved`);
+      set({ savedReports: response.data.reports });
+    } catch (err) {
+      console.error('Failed to fetch saved reports:', err);
+    }
+  },
+
+  saveReport: async (reportData) => {
+    await discoverApiUrl();
+    try {
+      await axios.post(`${resolvedApiUrl}/reports/save`, reportData);
+      const { fetchSavedReports } = get();
+      await fetchSavedReports();
+    } catch (err) {
+      console.error('Failed to save report:', err);
+    }
+  },
+
+  deleteSavedReport: async (matchId) => {
+    await discoverApiUrl();
+    try {
+      await axios.delete(`${resolvedApiUrl}/reports/saved/${matchId}`);
+      const { fetchSavedReports } = get();
+      await fetchSavedReports();
+    } catch (err) {
+      console.error('Failed to delete saved report:', err);
+    }
+  }
+}));

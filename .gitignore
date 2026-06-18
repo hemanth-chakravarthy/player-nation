@@ -1,0 +1,60 @@
+# Node.js dependencies
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+
+# Build directories
+dist/
+build/
+.expo/
+web-build/
+
+# IDE files
+.idea/
+.vscode/
+.claude/
+CLAUDE.md
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment files
+.env
+.env*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Database & Docker files
+postgres_data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project-specific system files
+backend/src/data/*.json
+backend/src/data/matches/
+backend/src/data/players.json
+backend/src/data/teams.json
+backend/src/data/events/
+mobile/stitch_ai_football_match_reporter/
+mobile/scripts/fetch_team_logos.mjs
+
+# Ignored Documentation files (Keeping README.md and TECHNICAL_WRITE_UP.md)
+APP_FLOW.md
+BACKEND_STRUCTURE.md
+DATA_PROCESSING.md
+FRONTEND_ARCHITECTURE.md
+IMPLEMENTATION_PLAN.md
+PRD.md
+SYSTEM_ARCHITECTURE.md
+TECH_STACK.md
+Software Developer - Assignment.pdf
