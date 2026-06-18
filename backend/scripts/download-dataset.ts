@@ -92,7 +92,11 @@ async function main() {
   }
   fs.mkdirSync(tempMatchesDir);
   
-  execSync(`powershell -Command "Expand-Archive -Path '${FILES.matches.dest}' -DestinationPath '${tempMatchesDir}' -Force"`);
+  if (process.platform === 'win32') {
+    execSync(`powershell -Command "Expand-Archive -Path '${FILES.matches.dest}' -DestinationPath '${tempMatchesDir}' -Force"`);
+  } else {
+    execSync(`unzip -o "${FILES.matches.dest}" -d "${tempMatchesDir}"`);
+  }
   
   // Move matches_World_Cup.json and clean up
   const wcMatchesSrc = path.join(tempMatchesDir, FILES.matches.keepFile);
@@ -114,14 +118,18 @@ async function main() {
   await new Promise(resolve => setTimeout(resolve, 2000));
   console.log('Extracting World Cup events...');
   
-  // Extract events.zip using PowerShell
+  // Extract events.zip
   const tempEventsDir = path.join(DATA_DIR, 'temp_events');
   if (fs.existsSync(tempEventsDir)) {
     fs.rmSync(tempEventsDir, { recursive: true });
   }
   fs.mkdirSync(tempEventsDir);
   
-  execSync(`powershell -Command "Expand-Archive -Path '${FILES.events.dest}' -DestinationPath '${tempEventsDir}' -Force"`);
+  if (process.platform === 'win32') {
+    execSync(`powershell -Command "Expand-Archive -Path '${FILES.events.dest}' -DestinationPath '${tempEventsDir}' -Force"`);
+  } else {
+    execSync(`unzip -o "${FILES.events.dest}" -d "${tempEventsDir}"`);
+  }
   
   // Move events_World_Cup.json and clean up
   const wcEventsSrc = path.join(tempEventsDir, FILES.events.keepFile);

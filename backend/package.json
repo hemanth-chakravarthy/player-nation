@@ -7,6 +7,7 @@
     "start": "tsx src/app.ts",
     "dev": "tsx watch src/app.ts",
     "build": "tsc",
+    "download-dataset": "tsx scripts/download-dataset.ts",
     "test": "vitest run"
   },
   "keywords": [],
