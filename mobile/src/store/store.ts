@@ -8,11 +8,14 @@ const PORT = 3000;
 
 function buildCandidates(): string[] {
   const fixed = [
-    process.env.EXPO_PUBLIC_API_URL,  // .env value — highest priority
-    `http://10.0.2.2:${PORT}`,        // Android Emulator alias
-    `http://localhost:${PORT}`,       // web / iOS simulator
-    `http://192.168.1.8:${PORT}`,      // Current Ethernet IP
-    `http://192.168.137.1:${PORT}`,   // Current Windows Hotspot IP
+    process.env.EXPO_PUBLIC_API_URL,               // Primary URL (.env)
+    process.env.EXPO_PUBLIC_API_URL_PRODUCTION,    // Secondary Production URL (.env)
+    'https://player-nation-backend.onrender.com', // Common Render subdomain
+    'https://player-nation.onrender.com',         // Alternative Render subdomain
+    `http://10.0.2.2:${PORT}`,                     // Android Emulator alias
+    `http://localhost:${PORT}`,                    // web / iOS simulator
+    `http://192.168.1.8:${PORT}`,                  // Current Ethernet IP
+    `http://192.168.137.1:${PORT}`,                // Current Windows Hotspot IP
   ].filter(Boolean) as string[];
 
   // Scan the most common subnets
