@@ -5,6 +5,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
+  url: process.env.DATABASE_URL!,
   migrations: {
     path: 'prisma/migrations',
   },
