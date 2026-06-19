@@ -537,6 +537,7 @@ export default function MatchListScreen({ navigation }: any) {
   const [searchFocused, setSearchFocused] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
+  const [showTechDetails, setShowTechDetails] = useState(false);
 
   useEffect(() => { fetchMatches(); }, []);
 
@@ -602,10 +603,23 @@ export default function MatchListScreen({ navigation }: any) {
             <WarningIcon size={32} color={C.errorRed} />
           </View>
           <Text style={[s.loadingTitle, { color: '#FF4B4B' }]}>Connection Failed</Text>
-          <Text style={s.loadingHint}>{error}</Text>
+          <Text style={s.loadingHint}>We're having trouble connecting to the Player Nation server. Please check your internet connection and try again.</Text>
+          
           <TouchableOpacity style={s.retryBtn} onPress={fetchMatches} activeOpacity={0.85}>
             <Text style={s.retryText}>TRY AGAIN</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={{ marginTop: 24 }} onPress={() => setShowTechDetails(!showTechDetails)} activeOpacity={0.7}>
+            <Text style={{ fontFamily: MONO, fontSize: 10, color: C.outline, textDecorationLine: 'underline' }}>
+              {showTechDetails ? 'Hide technical details' : 'Show technical details'}
+            </Text>
+          </TouchableOpacity>
+
+          {showTechDetails && (
+            <View style={{ marginTop: 12, backgroundColor: C.charcoal, padding: 12, borderRadius: 6, borderWidth: 1, borderColor: C.steel, width: '100%' }}>
+              <Text style={{ fontFamily: MONO, fontSize: 10, color: C.secondary, lineHeight: 14 }}>{error}</Text>
+            </View>
+          )}
         </View>
 
       ) : (
@@ -794,7 +808,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     alignItems:     'center',
     padding:        30,
-    minHeight:      400,
   },
   loadingBadge: {
     width: 80, height: 80, borderRadius: 40,

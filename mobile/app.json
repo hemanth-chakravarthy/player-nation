@@ -10,12 +10,17 @@
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
+    "icon": "./assets/PlayerNation.png",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "package": "com.hemanth.playernation",
       "predictiveBackGestureEnabled": false,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/PlayerNation.png",
+        "backgroundColor": "#000000"
+      },
       "splash": {
         "image": "./assets/PlayerNation.png",
         "resizeMode": "contain",
