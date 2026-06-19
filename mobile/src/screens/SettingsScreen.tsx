@@ -86,7 +86,7 @@ export default function SettingsScreen({ navigation }: any) {
               style={s.coachAvatar}
             />
             <View>
-              <Text style={s.coachName}>Marcus Sterling</Text>
+              <Text style={s.coachName}>Couch Alex</Text>
               <Text style={s.coachId}>ELITE COACH ID: PN-9921</Text>
             </View>
           </View>

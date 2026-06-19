@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -25,6 +25,82 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DRAWER_WIDTH = 280;
 const MONO = Platform.select({ ios: 'Courier New', android: 'monospace', default: 'monospace' });
 
+type AlertBtn = { label: string; onPress?: () => void; destructive?: boolean; ghost?: boolean };
+
+function AppAlert({
+  visible, title, message, buttons, onDismiss,
+}: {
+  visible: boolean; title: string; message: string;
+  buttons: AlertBtn[]; onDismiss?: () => void;
+}) {
+  if (!visible) return null;
+  return (
+    <View style={al.backdrop}>
+      <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={onDismiss} activeOpacity={1} />
+      <View style={al.box}>
+        <Text style={al.title}>{title}</Text>
+        <Text style={al.message}>{message}</Text>
+        <View style={al.btnRow}>
+          {buttons.map((b, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[al.btn, b.ghost && al.btnGhost]}
+              onPress={() => { b.onPress?.(); onDismiss?.(); }}
+              activeOpacity={0.82}
+            >
+              <Text style={[al.btnText, b.ghost && al.btnTextGhost]}>
+                {b.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const al = StyleSheet.create({
+  backdrop: {
+    position: 'absolute',
+    top: 0, bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    zIndex: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+  box: {
+    width: '90%',
+    backgroundColor: '#1A1A1A',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#2D2D2D',
+    padding: 24,
+    alignItems: 'center',
+  },
+  title: {
+    fontFamily: 'Sora-Bold',
+    fontSize: 18, fontWeight: '800',
+    color: '#FFFFFF', textAlign: 'center', marginBottom: 8,
+  },
+  message: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14, color: '#C8C6C5',
+    textAlign: 'center', lineHeight: 21, marginBottom: 24,
+  },
+  btnRow: { flexDirection: 'row', gap: 10, width: '100%' },
+  btn: {
+    flex: 1, backgroundColor: '#D7FF00',
+    borderRadius: 6, paddingVertical: 13,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  btnGhost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#2D2D2D' },
+  btnText: { fontFamily: 'JetBrainsMono-Bold', fontSize: 12, fontWeight: '800', color: '#0D0D0D', letterSpacing: 0.5 },
+  btnTextGhost: { color: '#C8C6C5' },
+});
+
 interface SidebarDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -35,6 +111,7 @@ interface SidebarDrawerProps {
 export default function SidebarDrawer({ isOpen, onClose, navigation, activeScreen }: SidebarDrawerProps) {
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [alertVisible, setAlertVisible] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -144,8 +221,7 @@ export default function SidebarDrawer({ isOpen, onClose, navigation, activeScree
           <TouchableOpacity
             style={s.linkItem}
             onPress={() => {
-              onClose();
-              alert('Help & Support is currently unavailable in Beta.');
+              setAlertVisible(true);
             }}
             activeOpacity={0.7}
           >
@@ -164,8 +240,8 @@ export default function SidebarDrawer({ isOpen, onClose, navigation, activeScree
             <View style={s.onlineDot} />
           </View>
           <View style={s.userInfo}>
-            <Text style={s.userName}>Marcus Sterling</Text>
-            <Text style={s.userRole}>PRO ANALYST</Text>
+            <Text style={s.userName}>Couch Alex</Text>
+            <Text style={s.userRole}>ELITE COACH ID: PN-9921</Text>
           </View>
           <TouchableOpacity
             style={s.logoutBtn}
@@ -179,6 +255,15 @@ export default function SidebarDrawer({ isOpen, onClose, navigation, activeScree
           </TouchableOpacity>
         </View>
       </Animated.View>
+
+      {/* Beta Limitation Custom Alert */}
+      <AppAlert
+        visible={alertVisible}
+        title="Beta Limitation"
+        message="Help & Support is currently unavailable in the Beta release."
+        buttons={[{ label: 'OK', ghost: true, onPress: onClose }]}
+        onDismiss={() => setAlertVisible(false)}
+      />
     </View>
   );
 }
