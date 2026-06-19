@@ -162,7 +162,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (err: any) {
       console.error('Failed to fetch matches:', err.message);
       set({
-        error: `Cannot reach backend at ${resolvedApiUrl}.\nMake sure:\n• Backend is running (pnpm dev)\n• Your phone and PC are on the same Wi-Fi\n• IP in .env matches your PC IP`,
+        error: `Could not connect to the cloud server at ${resolvedApiUrl || 'https://player-nation.onrender.com'}.\n\nSuggestions:\n• The backend service on Render might be inactive (Render's free tier spinning down after inactivity).\n• Please verify if the backend server is running.\n• Check your internet connection.`,
         isLoading: false,
       });
     }
