@@ -1,7 +1,7 @@
 import React from 'react';
 import { MD3DarkTheme, PaperProvider } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { View } from 'react-native';
@@ -60,6 +60,7 @@ export default function App() {
             screenOptions={{
               headerShown: false,
               cardStyle: { backgroundColor: '#000000' },
+              cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
             }}
           >
             <Stack.Screen name="Splash" component={LoadingSplashScreen} />
