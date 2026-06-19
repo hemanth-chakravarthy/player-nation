@@ -16,7 +16,7 @@ const SORA = 'Sora-Regular';
 const MONO = 'JetBrainsMono-Regular';
 
 export default function LoadingSplashScreen({ navigation }: any) {
-  const { fetchMatches } = useAppStore();
+  const fetchMatches = useAppStore((state) => state.fetchMatches);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.92)).current;
   
