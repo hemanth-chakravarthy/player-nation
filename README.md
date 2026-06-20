@@ -6,7 +6,7 @@ The system features a custom data pre-processing pipeline that reduces thousands
 
 ---
 
-## 🛠️ Architecture & Tech Stack
+## Architecture and Tech Stack
 
 The project is structured as a mono-repo containing:
 - **`backend/`**: A Fastify API written in TypeScript. It integrates **Prisma ORM** with a **PostgreSQL** database (running in Docker) to cache generated reports and store bookmarked matches.
@@ -28,7 +28,7 @@ React Native APK Client (Zustand + Expo)
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### 1. Prerequisites
 - **Node.js** v20+
@@ -37,7 +37,7 @@ React Native APK Client (Zustand + Expo)
 
 ---
 
-### 2. Database & Backend Setup
+### 2. Database and Backend Setup
 
 1. **Start Docker Desktop** on your machine.
 2. Navigate to the backend directory:
@@ -82,7 +82,7 @@ React Native APK Client (Zustand + Expo)
 
 ---
 
-### 3. Mobile Setup & Running the App
+### 3. Mobile Setup and Running the App
 
 1. Navigate to the mobile directory:
    ```bash
@@ -102,9 +102,22 @@ React Native APK Client (Zustand + Expo)
 
 ---
 
-## 📱 Building & Installing the APK
+## Building and Installing the APK
 
-To generate a standalone installable APK on a standard Android device:
+To install the pre-built application directly onto your Android device:
+
+* **Download Link**: [Download PlayerNation APK (Expo Build)](https://expo.dev/accounts/hemanthchakravarthy/projects/player-nation/builds/1378579e-bb30-4cad-a07a-199a8f5241db)
+
+### Manual Installation Steps:
+1. Open the download link above on your Android device.
+2. Tap **Download** to retrieve the `.apk` file.
+3. Open the downloaded file and choose **Install** (allow installation from unknown sources/your browser if prompted).
+4. Run the installed **Player Nation** application from your device.
+
+---
+
+### Building the APK from Source:
+If you wish to build the standalone installer yourself:
 
 1. **Install EAS CLI**:
    ```bash
