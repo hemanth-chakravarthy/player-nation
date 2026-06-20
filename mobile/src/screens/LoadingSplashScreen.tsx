@@ -8,7 +8,7 @@ import {
   Dimensions,
   Text,
 } from 'react-native';
-import { useAppStore } from '../store/store';
+import { useAppStore, discoverApiUrl } from '../store/store';
 import axios from 'axios';
 
 const { width } = Dimensions.get('window');
@@ -22,8 +22,11 @@ export default function LoadingSplashScreen({ navigation }: any) {
   
   const [countdown, setCountdown] = useState(30);
   const [statusText, setStatusText] = useState('Connecting to server...');
+  const [showStatus, setShowStatus] = useState(false);
 
   useEffect(() => {
+    const startTime = Date.now();
+
     // Start premium entrance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -52,31 +55,46 @@ export default function LoadingSplashScreen({ navigation }: any) {
       // Pre-fetch matches in the background
       fetchMatches();
 
-      // Fade out and transition
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      }).start(() => {
-        navigation.replace('MatchList');
-      });
+      // Ensure the logo animation gets at least 1.2s to look clean
+      const elapsed = Date.now() - startTime;
+      const delay = Math.max(0, 1200 - elapsed);
+
+      setTimeout(() => {
+        // Fade out and transition
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }).start(() => {
+          navigation.replace('MatchList');
+        });
+      }, delay);
     };
 
-    // 1. Start waking up the server and checking its health
+    // Show status/countdown if the server is taking long to respond (asleep)
+    const statusTimeout = setTimeout(() => {
+      if (!isTransitioning) {
+        setShowStatus(true);
+        setStatusText('Waking up cloud server...');
+      }
+    }, 800);
+
+    // 1. Start waking up the server and checking its health using store's discoverApiUrl
     const checkServerHealth = async () => {
       try {
-        // We fetch the resolved API URL from store state
-        const resolvedUrl = useAppStore.getState().matches.length > 0
-          ? '' 
-          : 'https://player-nation-backend.onrender.com'; // fallback to production URL
-        
-        const response = await axios.get(`${resolvedUrl}/health`, { timeout: 2000 });
+        // Automatically discovers API URL by probing all candidates in parallel (including local and production)
+        const url = await discoverApiUrl();
+        const response = await axios.get(`${url}/health`, { timeout: 1500 });
         if (response.data && response.data.status === 'healthy') {
+          clearTimeout(statusTimeout);
           transitionToApp();
         }
       } catch (err) {
         // Server is still waking up
-        setStatusText('Waking up cloud server...');
+        if (!isTransitioning) {
+          setShowStatus(true);
+          setStatusText('Waking up cloud server...');
+        }
       }
     };
 
@@ -92,6 +110,7 @@ export default function LoadingSplashScreen({ navigation }: any) {
         if (prev <= 1) {
           clearInterval(countdownInterval);
           clearInterval(checkInterval);
+          clearTimeout(statusTimeout);
           // If countdown reaches 0, proceed to app anyway (it will show the error screen)
           transitionToApp();
           return 0;
@@ -101,6 +120,7 @@ export default function LoadingSplashScreen({ navigation }: any) {
     }, 1000);
 
     return () => {
+      clearTimeout(statusTimeout);
       clearInterval(checkInterval);
       clearInterval(countdownInterval);
     };
@@ -117,10 +137,12 @@ export default function LoadingSplashScreen({ navigation }: any) {
         />
       </Animated.View>
       
-      <Animated.View style={[s.statusContainer, { opacity: fadeAnim }]}>
-        <Text style={s.statusMessage}>{statusText}</Text>
-        <Text style={s.timerText}>Establishing link... {countdown}s</Text>
-      </Animated.View>
+      {showStatus && (
+        <Animated.View style={[s.statusContainer, { opacity: fadeAnim }]}>
+          <Text style={s.statusMessage}>{statusText}</Text>
+          <Text style={s.timerText}>Establishing link... {countdown}s</Text>
+        </Animated.View>
+      )}
     </View>
   );
 }

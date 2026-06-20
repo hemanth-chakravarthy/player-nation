@@ -26,7 +26,7 @@ function buildCandidates(): string[] {
   return [...fixed, ...subnet1, ...subnet0, ...subnet137];
 }
 
-let resolvedApiUrl: string = process.env.EXPO_PUBLIC_API_URL || `http://10.0.2.2:${PORT}`;
+export let resolvedApiUrl: string = process.env.EXPO_PUBLIC_API_URL || `http://10.0.2.2:${PORT}`;
 let isDiscovered = false;
 let discoveryPromise: Promise<string> | null = null;
 
@@ -57,7 +57,7 @@ function promiseAny<T>(promises: Promise<T>[]): Promise<T> {
   });
 }
 
-async function discoverApiUrl(force = false): Promise<string> {
+export async function discoverApiUrl(force = false): Promise<string> {
   if (isDiscovered && !force) {
     return resolvedApiUrl;
   }
